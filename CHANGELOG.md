@@ -1,22 +1,26 @@
+## 1.18.2 - 2026-09-23
+_Fix for the "Upload Folder" command when invoked from GitLens's context menu (Search & Compare). No changes to your `.vscode/sftp.json`._
+* **Fix `sftp.upload.folder` from GitLens Search & Compare**: GitLens invokes the command with its own internal comparison tree node instead of a file `Uri`, so the command used to cancel with "missing targets". The target resolver now recognizes that node shape and resolves the actual list of changed files through the official `vscode.git` API.
+
 ## 1.18.1 - 2026-06-10
-_Fix de crash del watcher al borrar archivos/carpetas. Sin cambios en tu `.vscode/sftp.json`._
-* **Fix crash en `watcher/removed`** (`Error: ENOENT ... realpath`): al borrar localmente un archivo o carpeta (o ficheros transitorios como `.git/index.lock`), `getFileSystemPath` hacía `fs.realpathSync` sobre una ruta que ya no existía y reventaba el handler del watcher. Ahora, si la ruta no existe, se usa la ruta original (el `realpath` solo normalizaba mayúsculas de la letra de unidad en Windows/macOS). No relacionado con `ssh2`.
+_Fix for a watcher crash when deleting files/folders. No changes to your `.vscode/sftp.json`._
+* **Fix crash in `watcher/removed`** (`Error: ENOENT ... realpath`): when locally deleting a file or folder (or transient files like `.git/index.lock`), `getFileSystemPath` called `fs.realpathSync` on a path that no longer existed, crashing the watcher handler. Now, if the path doesn't exist, the original path is used instead (`realpath` was only normalizing the drive-letter case on Windows/macOS). Unrelated to `ssh2`.
 
 ## 1.18.0 - 2026-06-08
-_Rebrand para diferenciación en Marketplace (cumplir Terms of Use): nombre, icono y branding propios. **Sin cambios funcionales** — tu `.vscode/sftp.json` sigue igual._
-* **Nuevo nombre**: `SFTP/FTP Sync (maintained)` → **`SFTP Sync Plus`**.
-* **Nuevo icono** propio (file verde line-art con flechas de sync verticales y un `+`), distinto del icono de la extensión original.
-* README: nueva sección "How is this different" + aviso claro de que **no es la extensión original**.
-* Imagen del Remote Explorer ahora servida desde el repo propio (antes hotlinkeaba al repo upstream).
-* Corregido `pub:debug`: apuntaba al repo de Natizyskunk → ahora `fibanez7/vscode-sftp`.
-* Build/CI: webpack deja de empaquetar los addons nativos opcionales de ssh2 (`cpu-features`, `*.node`); usa el fallback JS. Sin esto, `vsce package` fallaba en el CI de Linux. Sin cambios de comportamiento en runtime.
+_Rebrand for Marketplace differentiation (Terms of Use compliance): own name, icon and branding. **No functional changes** — your `.vscode/sftp.json` stays the same._
+* **New name**: `SFTP/FTP Sync (maintained)` → **`SFTP Sync Plus`**.
+* **New icon** of its own (green line-art file with vertical sync arrows and a `+`), distinct from the original extension's icon.
+* README: new "How is this different" section + a clear notice that **this is not the original extension**.
+* The Remote Explorer image is now served from this repo (it used to hotlink to the upstream repo).
+* Fixed `pub:debug`: it pointed at Natizyskunk's repo → now points at `fibanez7/vscode-sftp`.
+* Build/CI: webpack no longer bundles ssh2's optional native addons (`cpu-features`, `*.node`); it uses the JS fallback instead. Without this, `vsce package` failed in Linux CI. No runtime behavior changes.
 
 ## 1.17.0 - 2026-06-05
-_Inicio del fork mantenido por [@fibanez7](https://github.com/fibanez7). Continúa el trabajo de [@Natizyskunk](https://github.com/Natizyskunk) (a su vez fork de [@liximomo](https://github.com/liximomo))._
-* **Fix crash en VSCode 1.123+/Node 24** (`TypeError: isDate is not a function`): subido `ssh2` a `^1.17.0` (usa `util.types.isDate`, válido en Node 24). Desbloquea upload/download.
-* **Fix crash al conectar** (`The "listener" argument must be of type function`): los handlers de desconexión se registraban invocando `this.end()` en vez de pasar `() => this.end()`.
-* **Fix recompilación**: arreglados imports faltantes (`COMMAND_UPLOAD_*_TO_ALL_PROFILES`) y `getFileSystemPath` que recibía strings pero asumía `URI`.
-* Empaquetado más ligero y autocontenido: `ssh2` ahora va dentro del bundle webpack (22 files, ~246KB; antes 631 files/1.24MB arrastrando `node_modules`).
+_Start of the fork maintained by [@fibanez7](https://github.com/fibanez7). Continues the work of [@Natizyskunk](https://github.com/Natizyskunk) (itself a fork of [@liximomo](https://github.com/liximomo))._
+* **Fix crash on VSCode 1.123+/Node 24** (`TypeError: isDate is not a function`): bumped `ssh2` to `^1.17.0` (uses `util.types.isDate`, valid on Node 24). Unblocks upload/download.
+* **Fix crash on connect** (`The "listener" argument must be of type function`): disconnect handlers were registered by invoking `this.end()` instead of passing `() => this.end()`.
+* **Fix recompilation**: fixed missing imports (`COMMAND_UPLOAD_*_TO_ALL_PROFILES`) and `getFileSystemPath`, which received strings but assumed a `URI`.
+* Lighter, self-contained packaging: `ssh2` now ships inside the webpack bundle (22 files, ~246KB; previously 631 files/1.24MB dragging in `node_modules`).
 
 ## 1.16.3 - 2023-06-16
 * [#356] New Feature : Upload to all profiles (Pull request [#313](https://github.com/Natizyskunk/vscode-sftp/pull/313) from @wewawa vscode-sftp:create_multi_command).
