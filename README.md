@@ -1,5 +1,19 @@
 # SFTP Sync Plus
 
+> **AI disclaimer:** most of the code fixing and updating this fork is, and will be, written with/by AI.
+
+> **This is a personal fork of [fibanez7/vscode-sftp](https://github.com/fibanez7/vscode-sftp)**, maintained by [@S4nderDevelopment](https://github.com/S4nderDevelopment/vscode-sftp). It exists to carry targeted hotfixes on top of that fork — it will mainly contain fixes, not new features.
+>
+> Original authors this fork traces back to: [liximomo](https://github.com/liximomo/vscode-sftp) → [Natizyskunk](https://github.com/Natizyskunk/vscode-sftp) → [fibanez7](https://github.com/fibanez7/vscode-sftp) → this fork.
+>
+> **Fixes since this fork (on top of `fibanez7/vscode-sftp`)**
+>
+> | Fix | Detail |
+> |-----|--------|
+> | ✅ GitLens "Upload Folder" silently failing | GitLens's Search & Compare "N files changed" node invokes `sftp.upload.folder` with its own internal tree node object instead of a file `Uri`, so the command canceled with "missing targets". The target resolver now recognizes that node shape and resolves the real changed-file list via the official `vscode.git` API. |
+
+---
+
 > **This is an independent, community-maintained fork — _not_ the original "SFTP" extension by Natizyskunk / liximomo.** It has its own name, icon and repository. Use it if the original stopped working on recent VS Code.
 
 **A maintained, up-to-date fork of the popular VS Code SFTP extension — and it works on VS Code 1.123+ / Node 24, where the older versions crash.**

@@ -3,6 +3,7 @@ import { Uri, window } from 'vscode';
 import { FileType } from '../core';
 import { getAllFileService } from '../modules/serviceManager';
 import { ExplorerItem } from '../modules/remoteExplorer';
+import { getGitService } from '../modules/git';
 import { getActiveTextEditor } from '../host';
 import { listFiles, toLocalPath, simplifyPath } from '../helper';
 
@@ -115,8 +116,37 @@ export function getActiveFolder() {
   return Uri.file(path.dirname(uri.fsPath));
 }
 
+// GitLens (and similarly-built extensions) surface 3rd-party "explorer/context" menu
+// commands on their own comparison nodes (e.g. Search & Compare's "N files changed"),
+// but invoke them with their own internal tree node object instead of a Uri - there is
+// no Uri that represents "all files changed between two refs" to hand over. Recognize
+// that node shape by its repoPath/ref1/ref2 fields and resolve the actual changed-file
+// list ourselves via the official vscode.git API instead.
+async function urisFromGitCompareNode(item): Promise<Uri[] | undefined> {
+  if (!item || typeof item.repoPath !== 'string' || typeof item.ref1 !== 'string' || typeof item.ref2 !== 'string') {
+    return;
+  }
+
+  try {
+    const git = getGitService();
+    const repository = git.repositories.find(repo => repo.rootUri.fsPath === item.repoPath);
+    if (!repository) {
+      return;
+    }
+
+    // an empty ref2 is how GitLens represents "the working tree"
+    const changes = item.ref2
+      ? await repository.diffBetween(item.ref1, item.ref2)
+      : await repository.diffWith(item.ref1);
+
+    return changes.length ? changes.map(change => change.uri) : undefined;
+  } catch {
+    return;
+  }
+}
+
 // selected file or activeTarget or configContext
-export function uriFromExplorerContextOrEditorContext(item, items): undefined | Uri | Uri[] {
+export async function uriFromExplorerContextOrEditorContext(item, items): Promise<undefined | Uri | Uri[]> {
   // from explorer or editor context
   if (item instanceof Uri) {
     if (Array.isArray(items) && items[0] instanceof Uri) {
@@ -133,9 +163,17 @@ export function uriFromExplorerContextOrEditorContext(item, items): undefined | 
     } else {
       return item.resource.uri;
     }
+  } else if (Array.isArray(item) && item.length > 0) {
+    // some 3rd-party integrations pass the resource list as the sole argument
+    // instead of VS Code's own (uri, uris) convention
+    if (item[0] instanceof Uri) {
+      return item;
+    } else if ((item[0] as ExplorerItem).resource) {
+      return item.map(_ => _.resource.uri);
+    }
   }
 
-  return;
+  return urisFromGitCompareNode(item);
 }
 
 // selected folder or configContext
@@ -152,6 +190,15 @@ export function selectFolderFallbackToConfigContext(item, items): Promise<undefi
     } else if ((item as ExplorerItem).resource) {
       // from remote explorer
       return Promise.resolve(item.resource.uri);
+    } else if (Array.isArray(item) && item.length > 0) {
+      // some 3rd-party integrations (e.g. GitLens forwarding "explorer/context" menu
+      // commands from a multi-file compare/results node) pass the resource list as
+      // the sole argument instead of VS Code's own (uri, uris) convention
+      if (item[0] instanceof Uri) {
+        return Promise.resolve(item);
+      } else if ((item[0] as ExplorerItem).resource) {
+        return Promise.resolve(item.map(_ => _.resource.uri));
+      }
     }
   }
 

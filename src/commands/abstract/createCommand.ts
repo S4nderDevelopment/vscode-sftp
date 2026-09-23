@@ -1,3 +1,4 @@
+import * as util from 'util';
 import { Uri, window } from 'vscode';
 import logger from '../../logger';
 import { reportError } from '../../helper';
@@ -25,6 +26,49 @@ function checkType<T>() {
 
 export const checkCommand = checkType<CommandOption>();
 export const checkFileCommand = checkType<FileCommandOption>();
+
+// TEMP DEBUG: remove once GitLens target-resolution issue is diagnosed
+const SKIP_KEYS = new Set(['view', 'container', '_container', 'parent', 'root', 'context']);
+const SKIP_CLASS_PATTERN = /Service$|Provider$|Controller$|Container$|View$|Emitter$|Tracker$/;
+function safeDescribe(value: any, depth = 3, seen = new WeakSet<object>()): any {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (value instanceof Uri) {
+    return `Uri(${value.toString()})`;
+  }
+  if (seen.has(value)) {
+    return '<circular>';
+  }
+  const ctorName = value.constructor ? value.constructor.name : typeof value;
+  if (depth <= 0) {
+    return `<${ctorName}>`;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    const items = value.slice(0, 10).map(v => safeDescribe(v, depth - 1, seen));
+    return value.length > 10 ? [...items, `<+${value.length - 10} more>`] : items;
+  }
+
+  const out: any = { $type: ctorName };
+  for (const key of Object.keys(value)) {
+    const raw = (value as any)[key];
+    if (SKIP_KEYS.has(key) || (raw && raw.constructor && SKIP_CLASS_PATTERN.test(raw.constructor.name))) {
+      out[key] = `<skipped ${raw && raw.constructor ? raw.constructor.name : typeof raw}>`;
+      continue;
+    }
+    try {
+      out[key] = safeDescribe(raw, depth - 1, seen);
+    } catch {
+      out[key] = '<unreadable>';
+    }
+  }
+  return out;
+}
+function debugArgs(args: any[]): string {
+  return util.inspect(args.map(a => safeDescribe(a)), { depth: null, breakLength: 120 });
+}
 
 export function createCommand(commandOption: CommandOption & { name: string }) {
   return class NormalCommand extends Command {
@@ -54,6 +98,9 @@ export function createFileCommand(commandOption: FileCommandOption & { name: str
         return;
       }
       
+      // TEMP DEBUG: remove once GitLens target-resolution issue is diagnosed
+      logger.warn(`[debug] "${this.name}" invoked with args:`, debugArgs(args));
+
       const target = await commandOption.getFileTarget(...args);
       if (!target) {
         logger.warn(`The "${this.name}" command get canceled because of missing targets.`);
@@ -88,6 +135,9 @@ export function createFileMultiCommand(commandOption: FileCommandOption & { name
         return;
       }
       
+      // TEMP DEBUG: remove once GitLens target-resolution issue is diagnosed
+      logger.warn(`[debug] "${this.name}" invoked with args:`, debugArgs(args));
+
       const target = await commandOption.getFileTarget(...args);
       if (!target) {
         logger.warn(`The "${this.name}" command get canceled because of missing targets.`);

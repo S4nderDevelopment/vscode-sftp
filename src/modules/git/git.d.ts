@@ -130,11 +130,16 @@ export interface Repository {
 
 	apply(patch: string, reverse?: boolean): Promise<void>;
 	diff(cached?: boolean): Promise<string>;
+	diffWithHEAD(): Promise<Change[]>;
 	diffWithHEAD(path: string): Promise<string>;
+	diffWith(ref: string): Promise<Change[]>;
 	diffWith(ref: string, path: string): Promise<string>;
+	diffIndexWithHEAD(): Promise<Change[]>;
 	diffIndexWithHEAD(path: string): Promise<string>;
+	diffIndexWith(ref: string): Promise<Change[]>;
 	diffIndexWith(ref: string, path: string): Promise<string>;
 	diffBlobs(object1: string, object2: string): Promise<string>;
+	diffBetween(ref1: string, ref2: string): Promise<Change[]>;
 	diffBetween(ref1: string, ref2: string, path: string): Promise<string>;
 
 	hashObject(data: string): Promise<string>;
