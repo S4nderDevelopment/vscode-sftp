@@ -1,11 +1,13 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { Uri, window } from 'vscode';
 import { FileType } from '../core';
-import { getAllFileService } from '../modules/serviceManager';
+import { getAllFileService, getFileService } from '../modules/serviceManager';
 import { ExplorerItem } from '../modules/remoteExplorer';
-import { getGitService } from '../modules/git';
+import { getGitService, Repository, Status, Change } from '../modules/git';
 import { getActiveTextEditor } from '../host';
 import { listFiles, toLocalPath, simplifyPath } from '../helper';
+import logger from '../logger';
 
 function configIngoreFilterCreator(config) {
   if (!config || !config.ignore) {
@@ -127,21 +129,56 @@ async function urisFromGitCompareNode(item): Promise<Uri[] | undefined> {
     return;
   }
 
-  try {
-    const git = getGitService();
-    const repository = git.repositories.find(repo => repo.rootUri.fsPath === item.repoPath);
-    if (!repository) {
-      return;
-    }
-
-    // an empty ref2 is how GitLens represents "the working tree"
-    const changes = item.ref2
-      ? await repository.diffBetween(item.ref1, item.ref2)
-      : await repository.diffWith(item.ref1);
-
-    return changes.length ? changes.map(change => change.uri) : undefined;
-  } catch {
+  const repository = getGitService().repositories.find(repo => repo.rootUri.fsPath === item.repoPath);
+  if (!repository) {
     return;
+  }
+
+  // an empty ref2 is how GitLens represents "the working tree"
+  const changes = item.ref2
+    ? await repository.diffBetween(item.ref1, item.ref2)
+    : (await repository.diffWith(item.ref1)).concat(untrackedChanges(repository));
+
+  const uris: Uri[] = [];
+  const skipped: string[] = [];
+  for (const change of changes) {
+    const reason = skipReason(change);
+    if (reason) {
+      skipped.push(`  ${simplifyPath(change.uri.fsPath)} (${reason})`);
+    } else {
+      uris.push(change.uri);
+    }
+  }
+
+  if (skipped.length) {
+    logger.info(`Skipped ${skipped.length} file(s) of the git comparison:\n${skipped.join('\n')}`);
+  }
+
+  return uris.length ? uris : undefined;
+}
+
+// GitLens includes untracked files in working-tree comparisons, `git diff <ref>` does not
+function untrackedChanges(repository: Repository): Change[] {
+  const { workingTreeChanges, untrackedChanges = [] } = repository.state;
+  return workingTreeChanges.concat(untrackedChanges).filter(change => change.status === Status.UNTRACKED);
+}
+
+// Uploads read the local working tree, so a file is uploaded iff it exists on disk; files missing
+// locally are skipped, never deleted remotely. The git status is deliberately not consulted: whether
+// a change reads as "added" or "deleted" depends on the order the two refs were picked in.
+function skipReason(change: Change): string | undefined {
+  if (!fs.existsSync(change.uri.fsPath)) {
+    return 'not on disk';
+  }
+
+  const fileService = getFileService(change.uri);
+  if (!fileService) {
+    return 'outside of any sftp config';
+  }
+
+  const ignore = fileService.getConfig().ignore;
+  if (ignore && ignore(change.uri.fsPath)) {
+    return 'ignored';
   }
 }
 

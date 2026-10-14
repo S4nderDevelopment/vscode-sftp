@@ -1,3 +1,11 @@
+## 1.18.3 - 2026-10-14
+_More reliable "Upload Folder" from GitLens comparisons. No changes to your `.vscode/sftp.json`._
+* **Fix untracked files missing from GitLens working-tree comparisons**: GitLens lists untracked (not yet `git add`-ed) files when one side of the comparison is the working tree, but `git diff <ref>` doesn't. They are now included and uploaded.
+* **Fix uploads into new remote folders sometimes failing**: when several files were uploaded into the same not-yet-existing remote folder, the concurrent folder creations could race and make some uploads fail. Both SFTP and FTP now treat "the folder already exists" as success.
+* **Files missing locally are skipped, never deleted remotely**: Upload Folder uploads what is on disk. Files that are deleted (or only exist in the other ref) are now skipped instead of producing upload errors, regardless of the order in which the two refs were picked. Nothing is ever removed from the remote.
+* Files outside any sftp config are skipped instead of each raising a "Config Not Found" error, and `ignore`/`ignoreFile` rules are applied while resolving the comparison. Every skipped file is logged to the SFTP output panel with its reason (`not on disk`, `ignored`, `outside of any sftp config`).
+* Note: the upload uses your **local working tree**, so check out the branch you want to deploy before uploading a comparison.
+
 ## 1.18.2 - 2026-09-23
 _Fix for the "Upload Folder" command when invoked from GitLens's context menu (Search & Compare). No changes to your `.vscode/sftp.json`._
 * **Fix `sftp.upload.folder` from GitLens Search & Compare**: GitLens invokes the command with its own internal comparison tree node instead of a file `Uri`, so the command used to cancel with "missing targets". The target resolver now recognizes that node shape and resolves the actual list of changed files through the official `vscode.git` API.

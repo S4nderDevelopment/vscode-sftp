@@ -100,6 +100,8 @@ export interface RepositoryState {
 	readonly mergeChanges: Change[];
 	readonly indexChanges: Change[];
 	readonly workingTreeChanges: Change[];
+	// only populated (VS Code 1.79+) when "git.untrackedChanges" is set to "separate"
+	readonly untrackedChanges?: Change[];
 
 	readonly onDidChange: Event<void>;
 }

@@ -290,27 +290,29 @@ export default class SFTPFileSystem extends RemoteFileSystem {
       err = error;
     }
 
-    switch (err.code) {
-      case 2:
-        const parentPath = this.pathResolver.dirname(dir);
-        if (parentPath === dir) throw err;
-        await this.ensureDir(parentPath);
+    if (err.code === 2) {
+      const parentPath = this.pathResolver.dirname(dir);
+      if (parentPath === dir) throw err;
+      await this.ensureDir(parentPath);
+      try {
         await this.mkdir(dir);
-        break;
+        return;
+      } catch (error) {
+        // a concurrent transfer into the same new directory may have created it meanwhile
+        err = error;
+      }
+    }
 
-      // In the case of any other error, just see if there's a dir
-      // there already.  If so, then hooray!  If not, then something
-      // is borked.
-      default:
-        try {
-          const stat = await this.lstat(dir);
-          if (stat.type !== FileType.Directory) throw err;
-        } catch {
-          // if the stat fails, then that's super weird.
-          // let the original error be the failure reason
-          throw err;
-        }
-        break;
+    // In the case of any other error, just see if there's a dir
+    // there already.  If so, then hooray!  If not, then something
+    // is borked.
+    try {
+      const stat = await this.lstat(dir);
+      if (stat.type !== FileType.Directory) throw err;
+    } catch {
+      // if the stat fails, then that's super weird.
+      // let the original error be the failure reason
+      throw err;
     }
   }
 
