@@ -2,7 +2,12 @@
 
 > **AI disclaimer:** most of the code fixing and updating this fork is, and will be, written with/by AI.
 
-> **This is a personal fork of [fibanez7/vscode-sftp](https://github.com/fibanez7/vscode-sftp)**, maintained by [@S4nderDevelopment](https://github.com/S4nderDevelopment/vscode-sftp). It exists to carry targeted hotfixes on top of that fork — it will mainly contain fixes, not new features.
+> **This is a personal fork of [fibanez7/vscode-sftp](https://github.com/fibanez7/vscode-sftp)**, maintained by S4nderDevelopment. It exists to carry targeted hotfixes on top of that fork — it will mainly contain fixes, not new features.
+>
+> **Where this fork lives:** it is mainly hosted on **GitLab**. The GitHub repository is kept because that is where the fork history (liximomo → Natizyskunk → fibanez7) lives, and both are kept in sync. Both are maintained by the same person:
+>
+> - GitLab (main): https://gitlab.com/s4nderdevelopment/vscode-sftp
+> - GitHub (fork history): https://github.com/S4nderDevelopment/vscode-sftp
 >
 > Original authors this fork traces back to: [liximomo](https://github.com/liximomo/vscode-sftp) → [Natizyskunk](https://github.com/Natizyskunk/vscode-sftp) → [fibanez7](https://github.com/fibanez7/vscode-sftp) → this fork.
 >
